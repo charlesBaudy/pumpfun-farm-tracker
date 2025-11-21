@@ -144,4 +144,69 @@ async function checkSupplyShock(data: TokenAnalysis) {
     }
 }
 
+// --- PHASE 2 : SUPPLY SHOCK DETECTOR (Le Chart SPACECAT) ---
+async function checkSupplyShock(data: TokenAnalysis) {
+    console.log(`\n🕵️ VERIFICATION SUPPLY SHOCK : ${data.mint}`);
+
+    // Nous allons vérifier si les acheteurs du Block 0 ont vendu.
+    // Si le Dev + ses 3 potes holdent toujours, l'offre est bloquée -> BULLISH.
+
+    let totalInitialTokens = 0;
+    let currentTokens = 0;
+    let paperHandsCount = 0;
+
+    // On vérifie chaque acheteur du début
+    for (const buyer of data.block0Buyers) {
+        try {
+            // Récupérer le solde actuel
+            const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+                new PublicKey(buyer),
+                { mint: new PublicKey(data.mint) }
+            );
+
+            let balance = 0;
+            if (tokenAccounts.value.length > 0) {
+                balance = tokenAccounts.value[0]?.account.data.parsed.info.tokenAmount.uiAmount;
+            }
+
+            // Note : Pour faire un calcul précis du % de rétention, il faudrait avoir stocké
+            // le montant exact acheté au Block 0.
+            // Ici, on utilise une heuristique : Si balance < 1000 (poussière), il a vendu.
+            // Si balance > 10000, il hold.
+            
+            if (balance < 1000) { 
+                paperHandsCount++;
+                console.log(`🔴 Buyer ${buyer.slice(0,6)} a vendu (Jeet).`);
+            } else {
+                console.log(`🟢 Buyer ${buyer.slice(0,6)} tient bon (Diamond Hand).`);
+            }
+
+        } catch (e) {
+            console.log(`Erreur lecture balance pour ${buyer}`);
+        }
+        
+        // Petite pause pour le RPC
+        await new Promise(r => setTimeout(r, 200));
+    }
+
+    // LE SIGNAL D'ACHAT FINAL
+    const retentionScore = (data.block0Buyers.length - paperHandsCount) / data.block0Buyers.length;
+    console.log(`💎 Retention Score : ${(retentionScore * 100).toFixed(0)}%`);
+
+    if (retentionScore >= CONFIG.HOLDING_REQUIREMENT) {
+        console.log("🚀 --- SIGNAL DE SUPPLY SHOCK CONFIRMÉ --- 🚀");
+        console.log(`✅ Les ${data.block0Buyers.length} premiers acheteurs n'ont PAS vendu.`);
+        console.log("✅ Le prix a probablement consolidé.");
+        console.log("🛒 ACTION : ACHETER MAINTENANT (High Probability of Pump).");
+        // --- ENREGISTREMENT DB : SUPPLY SHOCK (Le Graal) ---
+        await saveSignal(
+            data.mint, 
+            'SUPPLY_SHOCK', 
+            data.slot, 
+            data.block0Buyers.length, 
+            `Retention: ${(retentionScore*100).toFixed(0)}%`
+        );
+    }
+}
+
 main();
