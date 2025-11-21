@@ -79,7 +79,7 @@ async function processNewToken(mintTxSig: string, slot: number) {
                 allAccountKeys = [...staticKeys, ...loadedWritable, ...loadedReadonly];
             } else {
                 // @ts-ignore
-                allAccountKeys = Array.from(transaction.message.accountKeys);
+                allAccountKeys = Array.from(transaction.message.accountKeys ?? []);
             }
                         
             const isPump = allAccountKeys.some(k => k.toString() === PUMP_PROGRAM_ID.toString());
