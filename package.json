@@ -1,0 +1,29 @@
+{
+  "name": "pumpfun-farm-tracker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tracker": "tsc && node dist/tracker.js",
+    "backtest": "tsc && node dist/backtest.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@project-serum/borsh": "^0.2.5",
+    "@solana/web3.js": "^1.91.0",
+    "bs58": "^6.0.0",
+    "dotenv": "^17.2.3",
+    "rpc-websockets": "^7.11.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
