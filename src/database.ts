@@ -31,7 +31,7 @@ export async function initDB() {
 
 export async function saveSignal(
     mint: string, 
-    strategy: 'FARM' | 'SUPPLY_SHOCK', 
+    strategy: 'FARM' | 'SUPPLY_SHOCK_ELITE', 
     slot: number, 
     buyersCount: number,
     notes: string = ""

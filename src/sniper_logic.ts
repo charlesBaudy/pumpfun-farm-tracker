@@ -8,8 +8,9 @@ const PUMP_PROGRAM_ID = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF
 const CONFIG = {
     FARM_THRESHOLD: 10,          
     MICRO_CABAL_THRESHOLD: 4,    
-    SURVIVAL_CHECK_DELAY: 30000, // 30s pour le test
-    HOLDING_REQUIREMENT: 0.90    
+    SURVIVAL_CHECK_DELAY: 300000, // 5min pour le test
+    HOLDING_REQUIREMENT: 0.90,
+    MIN_TX_COUNT: 50             // NOUVEAU : Il faut au moins 50 transactions en 5 min.
 };
 
 const connection = new Connection(RPC_ENDPOINT, 'confirmed');
@@ -123,6 +124,22 @@ async function processNewToken(mintTxSig: string, slot: number) {
 async function checkSupplyShock(data: TokenAnalysis) {
     console.log(`\n🕵️ VERIFICATION SUPPLY SHOCK : ${data.mint}`);
 
+    // 1. CHECK VOLUME : Est-ce que le token est vivant ?
+    try {
+        const signatures = await connection.getSignaturesForAddress(
+            new PublicKey(data.mint), 
+            { limit: CONFIG.MIN_TX_COUNT }
+        );
+        
+        if (signatures.length < CONFIG.MIN_TX_COUNT) {
+            console.log(`❌ MORT CLINIQUE : Seulement ${signatures.length} txs en 5 min.`);
+            return; // On arrête là, pas la peine d'analyser plus.
+        }
+    } catch (e) {
+        console.log("Erreur RPC volume check");
+        return;
+    }
+
     // Nous allons vérifier si les acheteurs du Block 0 ont vendu.
     // Si le Dev + ses 3 potes holdent toujours, l'offre est bloquée -> BULLISH.
 
@@ -165,22 +182,26 @@ async function checkSupplyShock(data: TokenAnalysis) {
     }
 
     // LE SIGNAL D'ACHAT FINAL
+    // Calcul du score
     const retentionScore = (data.block0Buyers.length - paperHandsCount) / data.block0Buyers.length;
     console.log(`💎 Retention Score : ${(retentionScore * 100).toFixed(0)}%`);
 
+    // 3. VERDICT FINAL PLUS STRICT
     if (retentionScore >= CONFIG.HOLDING_REQUIREMENT) {
-        console.log("🚀 --- SIGNAL DE SUPPLY SHOCK CONFIRMÉ --- 🚀");
-        console.log(`✅ Les ${data.block0Buyers.length} premiers acheteurs n'ont PAS vendu.`);
-        console.log("✅ Le prix a probablement consolidé.");
-        console.log("🛒 ACTION : ACHETER MAINTENANT (High Probability of Pump).");
-        // --- ENREGISTREMENT DB : SUPPLY SHOCK (Le Graal) ---
+        console.log("🚀 --- SIGNAL SUPPLY SHOCK VALIDÉ ---");
+        console.log("✅ 1. Les Insiders n'ont RIEN vendu.");
+        console.log("✅ 2. Le token a survécu 5 minutes.");
+        console.log("✅ 3. Il y a du volume (Community driven).");
+        
         await saveSignal(
             data.mint, 
-            'SUPPLY_SHOCK', 
+            'SUPPLY_SHOCK_ELITE', // Nouveau nom de stratégie
             data.slot, 
             data.block0Buyers.length, 
-            `Retention: ${(retentionScore*100).toFixed(0)}%`
+            `Retention: ${(retentionScore*100).toFixed(0)}% | Alive 5m`
         );
+    } else {
+        console.log("❌ Échec : Les insiders ont vendu ou le score est insuffisant.");
     }
 }
 
