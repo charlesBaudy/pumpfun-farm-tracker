@@ -119,31 +119,6 @@ async function processNewToken(mintTxSig: string, slot: number) {
     }
 }
 
-async function checkSupplyShock(data: TokenAnalysis) {
-    console.log(`\n🕵️ CHECK SUPPLY SHOCK : ${data.mint}`);
-
-    let paperHandsCount = 0;
-    // ... (Ta logique de vérification de balance ici) ...
-    // Pour l'exemple, simulons un score
-    const retentionScore = 0.95; // Simulé à 95%
-
-    if (retentionScore >= CONFIG.HOLDING_REQUIREMENT) {
-        console.log("🚀 --- SIGNAL SUPPLY SHOCK CONFIRMÉ ---");
-        
-        // --- ENREGISTREMENT DB : SUPPLY SHOCK (Le Graal) ---
-        await saveSignal(
-            data.mint, 
-            'SUPPLY_SHOCK', 
-            data.slot, 
-            data.block0Buyers.length, 
-            `Retention: ${(retentionScore*100).toFixed(0)}%`
-        );
-
-    } else {
-        console.log("❌ Échec du pattern Supply Shock.");
-    }
-}
-
 // --- PHASE 2 : SUPPLY SHOCK DETECTOR (Le Chart SPACECAT) ---
 async function checkSupplyShock(data: TokenAnalysis) {
     console.log(`\n🕵️ VERIFICATION SUPPLY SHOCK : ${data.mint}`);
